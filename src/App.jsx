@@ -551,6 +551,14 @@ function StudyTool() {
     const [error, setError] = useState('');
     const [copied, setCopied] = useState(false);
 
+    useEffect(() => {
+        setAnswer('');
+        setSources([]);
+        setError('');
+        setCopied(false);
+        setSearchStatus('');
+    }, [activeTab]);
+
     const handleGenerate = async () => {
         if (!question.trim()) { setError('Please type a question first! ✏️'); return; }
         setError('');
@@ -559,26 +567,29 @@ function StudyTool() {
         setSources([]);
         setSearchStatus('🌐 Connecting...');
 
-        const markDescriptions = {
-            '2': 'a precise legal definition with the relevant section or concept, in about 20-40 words',
-            '5': 'a short definition or introduction followed by 2-3 clear explanatory points, with the relevant section or example where possible, in about 80-120 words',
-            '15': 'a structured law exam answer with Introduction, legal provisions or principles, explanation with subpoints, case law or example if relevant, and Conclusion, in about 250-350 words',
-        };
-
-        const systemPrompt = `You are an expert academic assistant writing LL.B answers in Mahatma Gandhi University (MGU) exam format. Write in clear, formal, textbook-style legal language suitable for university law exams. Prioritize syllabus-aligned legal concepts, correct statutory provisions, accepted legal principles, and standard exam presentation. Search the web only when needed to verify law, but never invent section numbers, case names, illustrations, or legal propositions. If a point is uncertain, omit the doubtful detail and answer only with academically reliable material. Always answer all parts of the question completely.
-
-For 2-mark answers:
+        const markConfigs = {
+            '2': {
+                label: '2-mark',
+                systemRules: `Write only a 2-mark answer.
 - Give a precise legal definition.
-- Mention the relevant section or concept if applicable.
+- Mention the relevant section or concept only if applicable.
 - Length: about 20-40 words.
-
-For 5-mark answers:
+- Do not add headings, bullet points, or extra explanation unless the question itself asks for them.`,
+                userInstruction: 'Answer strictly in 2-mark format. Return only the short answer needed for a 2-mark question.',
+            },
+            '5': {
+                label: '5-mark',
+                systemRules: `Write only a 5-mark answer.
 - Start with a short definition or introduction.
-- Explain the concept in 2-3 clear points.
+- Explain the concept in 2-3 clear points or a short paragraph structure.
 - Mention the relevant section or example if possible.
 - Length: about 80-120 words.
-
-For 15-mark answers:
+- Do not expand into a long-answer format or include 15-mark style headings.`,
+                userInstruction: 'Answer strictly in 5-mark format. Return only the content suitable for a 5-mark answer.',
+            },
+            '15': {
+                label: '15-mark',
+                systemRules: `Write only a 15-mark answer.
 - Use these headings exactly where suitable:
   1. Introduction
   2. Legal provisions or principles
@@ -586,18 +597,29 @@ For 15-mark answers:
   4. Case law or example (if relevant)
   5. Conclusion
 - Length: about 250-350 words.
-- Write in clear paragraphs suitable for law exams.
+- Write in clear paragraphs suitable for law exams.`,
+                userInstruction: 'Answer strictly in 15-mark format. Return only the content suitable for a 15-mark answer.',
+            },
+        };
+        const selectedMark = markConfigs[activeTab];
+
+        const systemPrompt = `You are an expert academic assistant writing LL.B answers in Mahatma Gandhi University (MGU) exam format. Write in clear, formal, textbook-style legal language suitable for university law exams. Prioritize syllabus-aligned legal concepts, correct statutory provisions, accepted legal principles, and standard exam presentation. Search the web only when needed to verify law, but never invent section numbers, case names, illustrations, or legal propositions. If a point is uncertain, omit the doubtful detail and answer only with academically reliable material. Always answer all parts of the question completely.
+
+Selected answer format: ${selectedMark.label}
+
+${selectedMark.systemRules}
 
 IMPORTANT:
 - Do NOT include any opening line identifying the course, semester, paper, or subject.
 - Just provide the direct exam answer.
 - If the question includes a number such as '3.', begin with that question number in bold.
 - Mention relevant sections, legal principles, and case law only when applicable and reliable.
-- Use markdown tables only for comparison-based questions; otherwise prefer headings, short paragraphs, and numbered points where needed.`;
+- Do not include content intended for any other mark category.
+- Use markdown tables only for comparison-based questions; otherwise prefer headings, short paragraphs, and numbered points where needed only if they fit the selected mark format.`;
 
         const cleanedQuestion = question.replace(/^#+\s*/gm, '').trim();
         const numberedQuestion = cleanedQuestion.replace(/^(\d+)\./, '**$1.**');
-        const userMessage = `Write a complete LL.B exam-style answer for the question below in MGU format. Follow the exact 2-mark, 5-mark, or 15-mark structure and length rules already given. Answer all subparts fully. Start with the question number in bold if present. Mention relevant sections, legal principles, and case law only where applicable and reliable.\n\nQuestion text: ${numberedQuestion}`;
+        const userMessage = `Write a complete LL.B exam-style answer for the question below in MGU format. ${selectedMark.userInstruction} Answer all subparts fully. Start with the question number in bold if present. Mention relevant sections, legal principles, and case law only where applicable and reliable.\n\nQuestion text: ${numberedQuestion}`;
 
         try {
             const result = await callGroq(
