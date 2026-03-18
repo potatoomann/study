@@ -8,6 +8,7 @@ import confetti from 'canvas-confetti';
 
 // ─── Constants ───────────────────────────────────────────────────
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const GROQ_SETUP_MESSAGE = 'Missing VITE_GROQ_API_KEY. Add it to `.env` for local development, or set it in your Vercel project Environment Variables and redeploy.';
 
 const SEMESTERS = ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4',
     'Semester 5', 'Semester 6', 'Semester 7', 'Semester 8'];
@@ -97,7 +98,7 @@ const MARK_TABS = [
 // Uses compound-beta model which has built-in web search (100% free)
 async function callGroq(systemPrompt, messages, onStream, onStatus, onSources) {
     if (!GROQ_API_KEY) {
-        throw new Error('Missing VITE_GROQ_API_KEY. Add it to your local .env file.');
+        throw new Error(GROQ_SETUP_MESSAGE);
     }
 
     onStatus?.('🌐 Connecting to Groq AI...');
@@ -608,7 +609,7 @@ IMPORTANT:
             );
             if (result.sources?.length) setSources(result.sources);
         } catch (err) {
-            setError(`Oops! ${err.message}. Check your API key and try again.`);
+            setError(`Oops! ${err.message}`);
         } finally {
             setIsLoading(false);
             setSearchStatus('');
@@ -906,7 +907,7 @@ IMPORTANT: Do NOT include any tables or text identifying the course, semester, o
                 setAnalysis(text);
             });
         } catch (err) {
-            setError(`Error: ${err.message}`);
+            setError(err.message);
         } finally {
             setIsLoading(false);
         }
